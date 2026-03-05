@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
-import YouTube from 'react-youtube';
+import YouTube, { YouTubeEvent } from 'react-youtube';
 import { useAuthStore } from '@/store/authStore';
 import { videosApi, VideoDetail } from '@/lib/videos';
 import { subjectsApi, SubjectTree } from '@/lib/subjects';
@@ -17,7 +17,6 @@ export default function VideoPage() {
   const [subjectTree, setSubjectTree] = useState<SubjectTree | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
-  const [player, setPlayer] = useState<any>(null);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   const subjectId = Number(params.subjectId);
@@ -37,11 +36,12 @@ export default function VideoPage() {
         ]);
         setVideo(videoData);
         setSubjectTree(treeData);
-      } catch (err: any) {
-        if (err.response?.status === 403) {
+      } catch (err: unknown) {
+        const error = err as { response?: { data?: { error?: { message?: string } }; status?: number } };
+        if (error.response?.status === 403) {
           setError('This video is locked. Please complete the previous video first.');
         } else {
-          setError(err.response?.data?.error?.message || 'Failed to load video');
+          setError(error.response?.data?.error?.message || 'Failed to load video');
         }
       } finally {
         setIsLoading(false);
@@ -62,9 +62,7 @@ export default function VideoPage() {
     return match ? match[1] : '';
   };
 
-  const onPlayerReady = (event: any) => {
-    setPlayer(event.target);
-    
+  const onPlayerReady = (event: YouTubeEvent) => {
     // Seek to last position if available
     if (video?.progress?.last_position_seconds) {
       event.target.seekTo(video.progress.last_position_seconds, true);
@@ -83,7 +81,7 @@ export default function VideoPage() {
     }, 5000); // Update every 5 seconds
   };
 
-  const onPlayerStateChange = async (event: any) => {
+  const onPlayerStateChange = async (event: YouTubeEvent) => {
     // YouTube player state: 0 = ended
     if (event.data === 0 && video) {
       // Mark as completed
