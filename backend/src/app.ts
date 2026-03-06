@@ -23,6 +23,7 @@ const allowedOrigins = [
   env.FRONTEND_URL,
   'http://localhost:3000',
   'https://learning-management-system-livid.vercel.app',
+  'https://learning-management-system-eta-lac.vercel.app',
 ].filter(Boolean);
 
 app.use(cors({
